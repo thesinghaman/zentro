@@ -1,0 +1,138 @@
+# ==========================
+# Global OS & IDE Files
+# ==========================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# VSCode / JetBrains IDEs
+.vscode/
+.idea/
+*.iml
+*.iws
+*.ipr
+*.class
+*.log
+
+# ==========================
+# Backend (Java + Spring Boot)
+# ==========================
+
+# Maven
+**/target/
+**/pom.xml.tag
+**/pom.xml.releaseBackup
+**/pom.xml.versionsBackup
+**/pom.xml.next
+**/release.properties
+
+# Gradle
+**/.gradle/
+**/build/
+**/out/
+
+# IntelliJ / Eclipse
+*.iml
+*.classpath
+*.project
+*.settings/
+
+# Spring Boot
+spring.log
+*.jar
+*.war
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+application-*.yml
+application-*.properties
+*.keystore
+*.jks
+*.p12
+
+# Logs
+logs/
+*.log
+*.trace
+
+# Database / IDE-specific
+*.h2.db
+*.mv.db
+*.lock.db
+*.db
+
+# ==========================
+# Flutter / Dart (client + admin)
+# ==========================
+
+# Flutter / Dart
+**/build/
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.packages
+**/pubspec.lock
+
+# iOS
+**/ios/Pods/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Runner/GeneratedPluginRegistrant.*
+**/ios/Runner.xcworkspace/
+**/ios/Flutter/FlutterPluginRegistrant.*
+
+# Android
+**/android/.gradle/
+**/android/build/
+**/android/app/build/
+**/android/local.properties
+**/android/captures/
+**/android/gradle-wrapper.properties
+
+# Misc
+**/pubspec.lock
+*.lock
+
+# ==========================
+# Cloudflare / Storage / Payment Keys
+# ==========================
+# (Secrets, tokens, API keys)
+**/secrets/
+**/tokens/
+*.key
+*.pem
+*.crt
+*.p12
+
+# ==========================
+# Logs, temporary files
+# ==========================
+*.tmp
+*.swp
+*.swo
+*.bak
+*.orig
+*.old
+*.backup
+
+# ==========================
+# OS-specific Flutter artifacts
+# ==========================
+**/.packages
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+.gitmessage
