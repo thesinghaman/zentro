@@ -15,8 +15,8 @@
     <groupId>com.zentro</groupId>
     <artifactId>zentro-backend</artifactId>
     <version>1.0.0</version>
-    <name>Zentro E-commerce Backend</name>
-    <description>Enterprise-grade e-commerce backend with Spring Boot</description>
+    <name>Zentro</name>
+    <description>E-commerce backend with Spring Boot</description>
 
     <properties>
         <java.version>21</java.version>

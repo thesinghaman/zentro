@@ -1,6 +1,7 @@
 package com.zentro;
 
 import com.zentro.config.EnvironmentConfig;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
@@ -9,7 +10,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 /**
  * Main entry point for Zentro E-commerce Backend Application
  * 
- * @author Zentro Team
+ * @author Aman Singh
  * @version 1.0.0
  */
 @SpringBootApplication

@@ -26,6 +26,7 @@ public final class Constants {
     public static final String JWT_CLAIM_ROLE = "role";
     public static final String JWT_TYPE_ACCESS = "ACCESS";
     public static final String JWT_TYPE_REFRESH = "REFRESH";
+    public static final String JWT_TYPE_TEMPORARY = "TEMPORARY";
     
     // Headers
     public static final String HEADER_AUTHORIZATION = "Authorization";

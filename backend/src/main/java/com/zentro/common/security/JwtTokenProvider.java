@@ -1,14 +1,19 @@
 package com.zentro.common.security;
 
 import com.zentro.common.util.Constants;
+
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+
 import jakarta.annotation.PostConstruct;
+
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
@@ -29,6 +34,9 @@ public class JwtTokenProvider {
     
     @Value("${app.jwt.refresh-token-expiration}")
     private long refreshTokenExpiration;
+
+    @Value("${app.jwt.temporary-token-expiration}")
+    private long temporaryExpiration;
     
     private SecretKey key;
     
@@ -68,10 +76,10 @@ public class JwtTokenProvider {
         Map<String, Object> claims = new HashMap<>();
         claims.put(Constants.JWT_CLAIM_USER_ID, userId);
         claims.put(Constants.JWT_CLAIM_EMAIL, email);
-        claims.put("type", "TEMPORARY");
+        claims.put("type", Constants.JWT_TYPE_TEMPORARY);
         
         // Temporary token expires in 5 minutes
-        return generateToken(claims, 300000L);
+        return generateToken(claims, temporaryExpiration);
     }
     
     /**

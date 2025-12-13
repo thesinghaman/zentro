@@ -17,7 +17,7 @@ import java.util.stream.Stream;
 
 /**
  * Environment Configuration Loader
- * Loads environment variables from .env.local file in enterprise-grade way
+ * Loads environment variables from .env.local file
  * This runs before Spring Boot's property resolution
  */
 public class EnvironmentConfig implements ApplicationContextInitializer<ConfigurableApplicationContext> {

@@ -1,10 +1,12 @@
 package com.zentro.feature.auth.entity;
 
 import jakarta.persistence.*;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -28,87 +30,107 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @Column(name = "public_id", unique = true, nullable = false, length = 50)
     private String publicId;
-    
+
     @Column(name = "first_name", nullable = false, length = 50)
     private String firstName;
-    
+
     @Column(name = "last_name", nullable = false, length = 50)
     private String lastName;
-    
+
     @Column(name = "username", unique = true, nullable = false, length = 50)
     private String username;
-    
+
     @Column(name = "email", unique = true, nullable = false, length = 100)
     private String email;
-    
+
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
-    
+
     @Column(name = "phone_number", length = 20)
     private String phoneNumber;
-    
+
     @Column(name = "profile_picture_url", length = 500)
     private String profilePictureUrl;
-    
+
     @Column(name = "email_verified", nullable = false)
     @Builder.Default
     private Boolean emailVerified = false;
-    
+
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 20)
     @Builder.Default
     private Role role = Role.USER;
-    
+
     @Column(name = "failed_otp_attempts", nullable = false)
     @Builder.Default
     private Integer failedOtpAttempts = 0;
-    
+
     @Column(name = "account_locked_until")
     private LocalDateTime accountLockedUntil;
-    
+
     @Column(name = "is_deleted", nullable = false)
     @Builder.Default
     private Boolean isDeleted = false;
-    
+
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
-    
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
-    
+
     @LastModifiedDate
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-    
+
+    // TODO: Phase 3 - Add Address relationship after Address entity is created
+    // @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    // private List<Address> addresses = new ArrayList<>();
+
+    // TODO: Phase 6 - Add Cart relationship after Cart entity is created
+    // @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    // private Cart cart;
+
+    // TODO: Phase 7 - Add Wishlist relationship after Wishlist entity is created
+    // @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    // private List<Wishlist> wishlistItems = new ArrayList<>();
+
+    // TODO: Phase 8 - Add Order relationship after Order entity is created
+    // @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    // private List<Order> orders = new ArrayList<>();
+
+    // TODO: Phase 9 - Add ProductReview relationship after ProductReview entity is created
+    // @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    // private List<ProductReview> reviews = new ArrayList<>();
+
     /**
      * Get full name
      */
     public String getFullName() {
         return firstName + " " + lastName;
     }
-    
+
     /**
      * Check if account is currently locked
      */
     public boolean isAccountLocked() {
         return accountLockedUntil != null && accountLockedUntil.isAfter(LocalDateTime.now());
     }
-    
+
     /**
      * Increment failed OTP attempts
      */
     public void incrementFailedOtpAttempts() {
         this.failedOtpAttempts++;
     }
-    
+
     /**
      * Reset failed OTP attempts
      */
@@ -116,14 +138,14 @@ public class User {
         this.failedOtpAttempts = 0;
         this.accountLockedUntil = null;
     }
-    
+
     /**
      * Lock account for specified minutes
      */
     public void lockAccount(int minutes) {
         this.accountLockedUntil = LocalDateTime.now().plusMinutes(minutes);
     }
-    
+
     /**
      * Soft delete user
      */
