@@ -1,4 +1,4 @@
-package com.zentro.feature.user.dto;
+package com.zentro.feature.user.dto.request;
 
 import com.zentro.common.validator.ValidUsername;
 

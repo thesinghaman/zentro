@@ -1,6 +1,7 @@
 package com.zentro.feature.auth.dto.response;
 
-import com.zentro.feature.user.dto.UserResponse;
+import com.zentro.feature.user.dto.response.UserResponse;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

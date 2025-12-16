@@ -1,8 +1,8 @@
 package com.zentro.feature.user.service;
 
-import com.zentro.feature.user.dto.UserResponse;
-import com.zentro.feature.user.dto.UpdateProfileRequest;
-import com.zentro.feature.user.dto.UpdateUsernameRequest;
+import com.zentro.feature.user.dto.response.UserResponse;
+import com.zentro.feature.user.dto.request.UpdateProfileRequest;
+import com.zentro.feature.user.dto.request.UpdateUsernameRequest;
 
 import org.springframework.web.multipart.MultipartFile;
 

@@ -1,4 +1,4 @@
-package com.zentro.feature.user.dto;
+package com.zentro.feature.user.dto.response;
 
 import com.zentro.feature.user.entity.User;
 

@@ -3,9 +3,9 @@ package com.zentro.feature.user.controller;
 import com.zentro.common.dto.ApiResponse;
 import com.zentro.common.security.UserPrincipal;
 import com.zentro.common.util.Constants;
-import com.zentro.feature.user.dto.UpdateProfileRequest;
-import com.zentro.feature.user.dto.UpdateUsernameRequest;
-import com.zentro.feature.user.dto.UserResponse;
+import com.zentro.feature.user.dto.request.UpdateProfileRequest;
+import com.zentro.feature.user.dto.request.UpdateUsernameRequest;
+import com.zentro.feature.user.dto.response.UserResponse;
 import com.zentro.feature.user.service.UserService;
 
 import lombok.RequiredArgsConstructor;

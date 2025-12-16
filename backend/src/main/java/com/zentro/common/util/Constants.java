@@ -91,4 +91,12 @@ public final class Constants {
 
     // Folders
     public static final String R2_FOLDER_PROFILE_PICTURES = "profile-pictures";
+
+    // Address Messages
+    public static final String SUCCESS_ADDRESS_ADDED = "Address added successfully";
+    public static final String SUCCESS_ADDRESS_UPDATED = "Address updated successfully";
+    public static final String SUCCESS_ADDRESS_DELETED = "Address deleted successfully";
+    public static final String SUCCESS_DEFAULT_ADDRESS_SET = "Default address set successfully";
+    public static final String ERROR_ADDRESS_NOT_FOUND = "Address not found";
+    public static final String ERROR_ADDRESS_NOT_BELONG_TO_USER = "Address does not belong to this user";
 }
