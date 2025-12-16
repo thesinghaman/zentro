@@ -1,17 +1,22 @@
 package com.zentro.feature.auth.service.impl;
 
+import com.zentro.common.exception.BadRequestException;
 import com.zentro.common.exception.DuplicateResourceException;
 import com.zentro.common.exception.ResourceNotFoundException;
 import com.zentro.common.exception.UnauthorizedException;
 import com.zentro.common.security.JwtTokenProvider;
 import com.zentro.common.util.Constants;
 import com.zentro.common.util.PublicIdGenerator;
-import com.zentro.feature.auth.dto.*;
+import com.zentro.feature.user.entity.User;
+import com.zentro.feature.user.repository.UserRepository;
+import com.zentro.feature.auth.dto.request.*;
+import com.zentro.feature.auth.dto.response.JwtResponse;
+import com.zentro.feature.auth.dto.response.SignupResponse;
+import com.zentro.feature.auth.dto.response.TemporaryTokenResponse;
+import com.zentro.feature.user.dto.UserResponse;
 import com.zentro.feature.auth.entity.RefreshToken;
 import com.zentro.feature.auth.entity.Role;
-import com.zentro.feature.auth.entity.User;
 import com.zentro.feature.auth.repository.RefreshTokenRepository;
-import com.zentro.feature.auth.repository.UserRepository;
 import com.zentro.feature.auth.service.AuthService;
 import com.zentro.feature.auth.service.EmailService;
 import com.zentro.feature.auth.service.OtpService;
@@ -25,6 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 /**
  * Implementation of authentication service
@@ -40,23 +46,43 @@ public class AuthServiceImpl implements AuthService {
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
-    
+
     @Value("${app.jwt.access-token-expiration}")
     private Long accessTokenExpiration;
-    
+
     @Value("${app.jwt.refresh-token-expiration}")
     private Long refreshTokenExpiration;
-    
+
     @Override
     @Transactional
     public SignupResponse signup(SignupRequest request) {
         log.info("Signup request received for email: {}", request.getEmail());
-        
-        // Check if user already exists
+
+        // Check if user already exists (active user)
         if (userRepository.existsByEmailAndIsDeletedFalse(request.getEmail())) {
             throw new DuplicateResourceException(Constants.ERROR_EMAIL_EXISTS);
         }
-        
+
+        // Check if user exists but is deleted
+        User deletedUser = userRepository.findByEmail(request.getEmail()).orElse(null);
+        if (deletedUser != null && deletedUser.getIsDeleted()) {
+            // Check if within 30-day grace period
+            if (deletedUser.getDeletedAt() != null) {
+                long daysSinceDeletion = ChronoUnit.DAYS.between(
+                        deletedUser.getDeletedAt(),
+                        LocalDateTime.now()
+                );
+
+                if (daysSinceDeletion <= Constants.ACCOUNT_DELETION_GRACE_PERIOD_DAYS) {
+                    throw new BadRequestException(
+                            Constants.ERROR_ACCOUNT_PENDING_DELETION
+                    );
+                }
+            }
+            // If > 30 days or no deletedAt, email should be available for new signup
+            // (This would happen after anonymization job runs)
+        }
+
         // Create new user
         User user = User.builder()
                 .publicId(PublicIdGenerator.generateUserId())
@@ -70,63 +96,87 @@ public class AuthServiceImpl implements AuthService {
                 .failedOtpAttempts(0)
                 .isDeleted(false)
                 .build();
-        
+
         user = userRepository.save(user);
         log.info("User created with ID: {} (publicId: {})", user.getId(), user.getPublicId());
-        
+
         // Generate and send OTP
         String otp = otpService.generateOtp(user.getId(), user.getEmail(), "EMAIL_VERIFICATION");
         emailService.sendVerificationOtp(user.getEmail(), user.getFirstName(), otp);
-        
+
         return SignupResponse.builder()
                 .userId(user.getPublicId()) // Return public ID
                 .email(user.getEmail())
                 .message(Constants.SUCCESS_SIGNUP)
                 .build();
     }
-    
+
     @Override
     @Transactional
     public JwtResponse login(LoginRequest request) {
         log.info("Login request received for email: {}", request.getEmail());
-        
-        // Find user
-        User user = userRepository.findByEmailAndIsDeletedFalse(request.getEmail())
+
+        // Find user (including deleted accounts)
+        User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UnauthorizedException(Constants.ERROR_INVALID_CREDENTIALS));
-        
+
+        // Auto-restore deleted account if within 30-day grace period
+        if (user.getIsDeleted()) {
+            if (user.getDeletedAt() == null) {
+                throw new UnauthorizedException(Constants.ERROR_INVALID_CREDENTIALS);
+            }
+
+            long daysSinceDeletion = ChronoUnit.DAYS.between(
+                    user.getDeletedAt(), LocalDateTime.now()
+            );
+
+            if (daysSinceDeletion > Constants.ACCOUNT_DELETION_GRACE_PERIOD_DAYS) {
+                throw new UnauthorizedException(
+                        Constants.ERROR_ACCOUNT_PERMANENTLY_DELETED
+                );
+            }
+
+            // Restore account
+            user.setIsDeleted(false);
+            user.setDeletedAt(null);
+            user.setAccountLockedUntil(null);
+            user = userRepository.save(user);
+            log.info("Account auto-restored for user ID: {}", user.getId());
+        }
+
         // Check if account is locked
         if (user.isAccountLocked()) {
             throw new UnauthorizedException(Constants.ERROR_ACCOUNT_LOCKED);
         }
-        
+
         // Verify password
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new UnauthorizedException(Constants.ERROR_INVALID_CREDENTIALS);
         }
-        
+
         // Check if email is verified
         if (!user.getEmailVerified()) {
             throw new UnauthorizedException(Constants.ERROR_EMAIL_NOT_VERIFIED);
         }
-        
+
         // Generate tokens
         return generateJwtResponse(user);
     }
-    
+
     @Override
     @Transactional
     public JwtResponse verifyEmail(VerifyOtpRequest request) {
         log.info("Email verification request received for email: {}", request.getEmail());
-        
+
         // Find user by email
         User user = userRepository.findByEmailAndIsDeletedFalse(request.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException(Constants.ERROR_USER_NOT_FOUND));
-        
+
         // Check if account is locked
         if (user.isAccountLocked()) {
             throw new UnauthorizedException(Constants.ERROR_ACCOUNT_LOCKED);
         }
-        
+
         // Validate OTP
         boolean isValid = otpService.validateOtp(
                 user.getId(),
@@ -134,88 +184,88 @@ public class AuthServiceImpl implements AuthService {
                 request.getOtp(),
                 "EMAIL_VERIFICATION"
         );
-        
+
         if (!isValid) {
             user.incrementFailedOtpAttempts();
-            if (user.getFailedOtpAttempts() >= 10) {
-                user.lockAccount(60); // Lock for 1 hour
+            if (user.getFailedOtpAttempts() >= Constants.OTP_MAX_FAILED_ATTEMPTS) {
+                user.lockAccount(Constants.ACCOUNT_LOCK_DURATION_MINUTES);
                 userRepository.save(user);
                 throw new UnauthorizedException(Constants.ERROR_ACCOUNT_LOCKED);
             }
             userRepository.save(user);
             throw new UnauthorizedException(Constants.ERROR_INVALID_OTP);
         }
-        
+
         // Mark email as verified and reset failed attempts
         user.setEmailVerified(true);
         user.resetFailedOtpAttempts();
         user = userRepository.save(user);
-        
+
         log.info("Email verified successfully for user ID: {}", user.getId());
-        
+
         // Send welcome email
         emailService.sendWelcomeEmail(user.getEmail(), user.getFirstName());
-        
+
         // Generate tokens for auto-login
         return generateJwtResponse(user);
     }
-    
+
     @Override
     @Transactional
     public String resendVerificationOtp(ResendOtpRequest request) {
         log.info("Resend OTP request received for email: {}", request.getEmail());
-        
+
         // Find user by email
         User user = userRepository.findByEmailAndIsDeletedFalse(request.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException(Constants.ERROR_USER_NOT_FOUND));
-        
+
         // Check if already verified
         if (user.getEmailVerified()) {
-            throw new UnauthorizedException("Email is already verified");
+            throw new UnauthorizedException(Constants.ERROR_EMAIL_ALREADY_VERIFIED);
         }
-        
+
         // Generate and send new OTP
         String otp = otpService.generateOtp(user.getId(), user.getEmail(), "EMAIL_VERIFICATION");
         emailService.sendVerificationOtp(user.getEmail(), user.getFirstName(), otp);
-        
+
         return Constants.SUCCESS_OTP_SENT;
     }
-    
+
     @Override
     @Transactional
     public String forgotPassword(ForgotPasswordRequest request) {
         log.info("Forgot password request received for email: {}", request.getEmail());
-        
+
         // Find user
         User user = userRepository.findByEmailAndIsDeletedFalse(request.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException(Constants.ERROR_USER_NOT_FOUND));
-        
+
         // Check if account is locked
         if (user.isAccountLocked()) {
             throw new UnauthorizedException(Constants.ERROR_ACCOUNT_LOCKED);
         }
-        
+
         // Generate and send OTP
         String otp = otpService.generateOtp(user.getId(), user.getEmail(), "PASSWORD_RESET");
         emailService.sendPasswordResetOtp(user.getEmail(), user.getFirstName(), otp);
-        
+
         return Constants.SUCCESS_OTP_SENT;
     }
-    
+
     @Override
     @Transactional
     public TemporaryTokenResponse verifyResetOtp(VerifyResetOtpRequest request) {
         log.info("Verify reset OTP request received for email: {}", request.getEmail());
-        
+
         // Find user
         User user = userRepository.findByEmailAndIsDeletedFalse(request.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException(Constants.ERROR_USER_NOT_FOUND));
-        
+
         // Check if account is locked
         if (user.isAccountLocked()) {
             throw new UnauthorizedException(Constants.ERROR_ACCOUNT_LOCKED);
         }
-        
+
         // Validate OTP
         boolean isValid = otpService.validateOtp(
                 user.getId(),
@@ -223,7 +273,7 @@ public class AuthServiceImpl implements AuthService {
                 request.getOtp(),
                 "PASSWORD_RESET"
         );
-        
+
         if (!isValid) {
             user.incrementFailedOtpAttempts();
             if (user.getFailedOtpAttempts() >= 10) {
@@ -234,89 +284,89 @@ public class AuthServiceImpl implements AuthService {
             userRepository.save(user);
             throw new UnauthorizedException(Constants.ERROR_INVALID_OTP);
         }
-        
+
         // Reset failed attempts
         user.resetFailedOtpAttempts();
         userRepository.save(user);
-        
+
         // Generate temporary token (5 minutes expiry)
         String temporaryToken = jwtTokenProvider.generateTemporaryToken(
                 user.getId(),
                 user.getEmail()
         );
-        
+
         return TemporaryTokenResponse.builder()
                 .temporaryToken(temporaryToken)
                 .expiresIn(300L) // 5 minutes in seconds
                 .message("OTP verified. Use this token to reset your password.")
                 .build();
     }
-    
+
     @Override
     @Transactional
     public String resetPassword(ResetPasswordRequest request) {
         log.info("Reset password request received");
-        
+
         // Validate temporary token
         if (!jwtTokenProvider.validateToken(request.getTemporaryToken())) {
-            throw new UnauthorizedException("Invalid or expired temporary token");
+            throw new UnauthorizedException(Constants.ERROR_INVALID_TEMPORARY_TOKEN);
         }
-        
+
         // Extract user ID from token
         Long userId = jwtTokenProvider.getUserIdFromToken(request.getTemporaryToken());
-        
+
         // Find user
         User user = userRepository.findActiveById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(Constants.ERROR_USER_NOT_FOUND));
-        
+
         // Update password
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         user.resetFailedOtpAttempts();
         userRepository.save(user);
-        
+
         // Invalidate all refresh tokens for this user
         refreshTokenRepository.deleteByUserId(userId);
-        
+
         log.info("Password reset successfully for user ID: {}", userId);
-        
+
         // Send confirmation email
         emailService.sendPasswordResetConfirmation(user.getEmail(), user.getFirstName());
-        
+
         return Constants.SUCCESS_PASSWORD_RESET;
     }
-    
+
     @Override
     @Transactional
     public JwtResponse refreshAccessToken(String refreshToken) {
         log.info("Refresh token request received");
-        
+
         // Validate refresh token
         if (!jwtTokenProvider.validateToken(refreshToken)) {
             throw new UnauthorizedException(Constants.ERROR_INVALID_TOKEN);
         }
-        
+
         // Hash and find in database
         String tokenHash = jwtTokenProvider.hashToken(refreshToken);
         RefreshToken storedToken = refreshTokenRepository.findByTokenHash(tokenHash)
                 .orElseThrow(() -> new UnauthorizedException(Constants.ERROR_INVALID_TOKEN));
-        
+
         // Check if expired
         if (storedToken.isExpired()) {
             refreshTokenRepository.delete(storedToken);
             throw new UnauthorizedException(Constants.ERROR_TOKEN_EXPIRED);
         }
-        
+
         // Find user
         User user = userRepository.findActiveById(storedToken.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException(Constants.ERROR_USER_NOT_FOUND));
-        
+
         // Generate new access token
         String newAccessToken = jwtTokenProvider.generateAccessToken(
                 user.getId(),
                 user.getEmail(),
                 user.getRole().name()
         );
-        
+
         return JwtResponse.of(
                 newAccessToken,
                 refreshToken,
@@ -324,29 +374,32 @@ public class AuthServiceImpl implements AuthService {
                 UserResponse.from(user)
         );
     }
-    
+
     @Override
     @Transactional
     public void logout(Long userId) {
         log.info("Logout request received for user ID: {}", userId);
         refreshTokenRepository.deleteByUserId(userId);
     }
-    
+
     /**
      * Generate JWT response with access and refresh tokens
      */
     private JwtResponse generateJwtResponse(User user) {
+        // Delete old refresh tokens for this user
+        refreshTokenRepository.deleteByUserId(user.getId());
+
         // Generate tokens
         String accessToken = jwtTokenProvider.generateAccessToken(
                 user.getId(),
                 user.getEmail(),
                 user.getRole().name()
         );
-        
+
         String refreshToken = jwtTokenProvider.generateRefreshToken(
                 user.getId()
         );
-        
+
         // Store refresh token in database
         String tokenHash = jwtTokenProvider.hashToken(refreshToken);
         RefreshToken refreshTokenEntity = RefreshToken.builder()
@@ -354,9 +407,9 @@ public class AuthServiceImpl implements AuthService {
                 .tokenHash(tokenHash)
                 .expiresAt(LocalDateTime.now().plusSeconds(refreshTokenExpiration / 1000))
                 .build();
-        
+
         refreshTokenRepository.save(refreshTokenEntity);
-        
+
         return JwtResponse.of(
                 accessToken,
                 refreshToken,
@@ -364,7 +417,7 @@ public class AuthServiceImpl implements AuthService {
                 UserResponse.from(user)
         );
     }
-    
+
     /**
      * Generate username from email (part before @)
      */
@@ -372,13 +425,13 @@ public class AuthServiceImpl implements AuthService {
         String baseUsername = email.substring(0, email.indexOf('@'));
         String username = baseUsername;
         int suffix = 1;
-        
+
         // If username exists, append number
         while (userRepository.existsByUsername(username)) {
             username = baseUsername + suffix;
             suffix++;
         }
-        
+
         return username;
     }
 }

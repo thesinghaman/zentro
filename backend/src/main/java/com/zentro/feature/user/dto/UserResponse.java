@@ -1,6 +1,6 @@
-package com.zentro.feature.auth.dto;
+package com.zentro.feature.user.dto;
 
-import com.zentro.feature.auth.entity.User;
+import com.zentro.feature.user.entity.User;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

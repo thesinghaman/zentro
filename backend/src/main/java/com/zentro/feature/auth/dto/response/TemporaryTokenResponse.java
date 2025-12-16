@@ -1,4 +1,4 @@
-package com.zentro.feature.auth.dto;
+package com.zentro.feature.auth.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

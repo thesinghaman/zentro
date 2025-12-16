@@ -10,6 +10,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.jetbrains.annotations.NotNull;
+
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -47,14 +49,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String email = jwtTokenProvider.getEmailFromToken(jwt);
                 String role = jwtTokenProvider.getRoleFromToken(jwt);
                 
-                // Create authentication token
-                SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role);
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                userId,
-                                null,
-                                Collections.singletonList(authority)
-                        );
+                // Create UserPrincipal
+                UsernamePasswordAuthenticationToken authentication = getUsernamePasswordAuthenticationToken(userId, email, role);
                 
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 
@@ -69,7 +65,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         
         filterChain.doFilter(request, response);
     }
-    
+
+    /**
+     * Create an authenticated Spring Security token with user principal and granted authority
+     */
+    @NotNull
+    public static UsernamePasswordAuthenticationToken getUsernamePasswordAuthenticationToken(Long userId, String email, String role) {
+        UserPrincipal userPrincipal = new UserPrincipal();
+        userPrincipal.setId(userId);
+        userPrincipal.setEmail(email);
+        userPrincipal.setRole(role);
+
+        // Create authentication token
+        SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role);
+
+        return new UsernamePasswordAuthenticationToken(
+                userPrincipal,
+                null,
+                Collections.singletonList(authority)
+        );
+    }
+
     /**
      * Extract JWT token from Authorization header
      */

@@ -1,5 +1,6 @@
 package com.zentro.common.config;
 
+import com.zentro.common.security.CustomAuthenticationEntryPoint;
 import com.zentro.common.security.JwtAuthenticationFilter;
 
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
     
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
     
     /**
      * Configure security filter chain
@@ -41,6 +43,8 @@ public class SecurityConfig {
                 .cors(cors -> cors.configure(http))
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(customAuthenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
                         .requestMatchers("/api/v1/auth/**").permitAll()

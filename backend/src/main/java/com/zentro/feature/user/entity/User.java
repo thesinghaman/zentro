@@ -1,4 +1,6 @@
-package com.zentro.feature.auth.entity;
+package com.zentro.feature.user.entity;
+
+import com.zentro.feature.auth.entity.Role;
 
 import jakarta.persistence.*;
 
@@ -75,12 +77,19 @@ public class User {
     @Column(name = "account_locked_until")
     private LocalDateTime accountLockedUntil;
 
+    @Column(name = "last_username_changed_at")
+    private LocalDateTime lastUsernameChangedAt;
+
     @Column(name = "is_deleted", nullable = false)
     @Builder.Default
     private Boolean isDeleted = false;
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
+
+    @Column(name = "anonymized", nullable = false)
+    @Builder.Default
+    private Boolean anonymized = false;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)

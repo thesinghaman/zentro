@@ -1,6 +1,9 @@
 package com.zentro.feature.auth.service;
 
-import com.zentro.feature.auth.dto.*;
+import com.zentro.feature.auth.dto.request.*;
+import com.zentro.feature.auth.dto.response.JwtResponse;
+import com.zentro.feature.auth.dto.response.SignupResponse;
+import com.zentro.feature.auth.dto.response.TemporaryTokenResponse;
 
 /**
  * Service interface for authentication operations

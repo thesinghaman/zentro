@@ -2,7 +2,10 @@ package com.zentro.feature.auth.controller;
 
 import com.zentro.common.dto.ApiResponse;
 import com.zentro.common.security.JwtTokenProvider;
-import com.zentro.feature.auth.dto.*;
+import com.zentro.feature.auth.dto.request.*;
+import com.zentro.feature.auth.dto.response.JwtResponse;
+import com.zentro.feature.auth.dto.response.SignupResponse;
+import com.zentro.feature.auth.dto.response.TemporaryTokenResponse;
 import com.zentro.feature.auth.service.AuthService;
 
 import jakarta.validation.Valid;

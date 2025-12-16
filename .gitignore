@@ -135,4 +135,8 @@ logs/
 **/.packages
 **/.flutter-plugins
 **/.flutter-plugins-dependencies
+
+# ==========================
+# Git commit message template
+# ==========================
 .gitmessage

@@ -1,4 +1,4 @@
-package com.zentro.feature.auth.dto;
+package com.zentro.feature.auth.dto.request;
 
 import com.zentro.common.util.Constants;
 

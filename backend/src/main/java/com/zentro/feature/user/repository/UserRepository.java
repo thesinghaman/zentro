@@ -1,6 +1,6 @@
-package com.zentro.feature.auth.repository;
+package com.zentro.feature.user.repository;
 
-import com.zentro.feature.auth.entity.User;
+import com.zentro.feature.user.entity.User;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -43,6 +43,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * Check if username exists
      */
     boolean existsByUsername(String username);
+
+    /**
+     * Check if username exists for a different user (excluding current user)
+     */
+    boolean existsByUsernameAndIdNot(String username, Long id);
     
     /**
      * Find user by ID (excluding deleted users)

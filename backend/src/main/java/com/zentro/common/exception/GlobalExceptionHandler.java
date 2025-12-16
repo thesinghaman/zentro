@@ -51,8 +51,8 @@ public class GlobalExceptionHandler {
                 .validationErrors(validationErrors)
                 .timestamp(LocalDateTime.now())
                 .build();
-        
-        log.warn("Validation error: {} on path: {}", validationErrors, request.getRequestURI());
+
+        log.warn("Request validation failed: {} on path: {}", validationErrors, request.getRequestURI());
         return ResponseEntity.badRequest().body(error);
     }
     
@@ -139,6 +139,28 @@ public class GlobalExceptionHandler {
         log.warn("Duplicate resource: {} on path: {}", ex.getMessage(), request.getRequestURI());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
+
+    /**
+     * Handle bad request exceptions
+     */
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ErrorResponse> handleBadRequestException(
+            BadRequestException ex,
+            HttpServletRequest request) {
+
+        ErrorResponse error = ErrorResponse.builder()
+                .success(false)
+                .message(ex.getMessage())
+                .error("BAD_REQUEST")
+                .status(HttpStatus.BAD_REQUEST.value())
+                .path(request.getRequestURI())
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        log.warn("Bad request: {} on path: {}", ex.getMessage(), request.getRequestURI());
+
+        return ResponseEntity.badRequest().body(error);
+    }
     
     /**
      * Handle validation exceptions
@@ -156,8 +178,8 @@ public class GlobalExceptionHandler {
                 .path(request.getRequestURI())
                 .timestamp(LocalDateTime.now())
                 .build();
-        
-        log.warn("Validation error: {} on path: {}", ex.getMessage(), request.getRequestURI());
+
+        log.warn("Business validation failed: {} on path: {}", ex.getMessage(), request.getRequestURI());
         return ResponseEntity.badRequest().body(error);
     }
     
