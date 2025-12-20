@@ -83,31 +83,41 @@ public class AuthServiceImpl implements AuthService {
             // (This would happen after anonymization job runs)
         }
 
-        // Create new user
-        User user = User.builder()
-                .publicId(PublicIdGenerator.generateUserId())
-                .firstName(request.getFirstName())
-                .lastName(request.getLastName())
-                .username(generateUsername(request.getEmail()))
-                .email(request.getEmail())
-                .passwordHash(passwordEncoder.encode(request.getPassword()))
-                .emailVerified(false)
-                .role(Role.USER)
-                .failedOtpAttempts(0)
-                .isDeleted(false)
-                .build();
-
-        user = userRepository.save(user);
+        // Create new user with USER role
+        User user = createUser(request, Role.USER);
         log.info("User created with ID: {} (publicId: {})", user.getId(), user.getPublicId());
 
         // Generate and send OTP
-        String otp = otpService.generateOtp(user.getId(), user.getEmail(), "EMAIL_VERIFICATION");
-        emailService.sendVerificationOtp(user.getEmail(), user.getFirstName(), otp);
+        sendVerificationOtp(user);
 
         return SignupResponse.builder()
                 .userId(user.getPublicId()) // Return public ID
                 .email(user.getEmail())
                 .message(Constants.SUCCESS_SIGNUP)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public SignupResponse adminSignup(SignupRequest request) {
+        log.info("Admin signup request received for email: {}", request.getEmail());
+
+        // Check if user already exists
+        if (userRepository.existsByEmailAndIsDeletedFalse(request.getEmail())) {
+            throw new DuplicateResourceException(Constants.ERROR_EMAIL_EXISTS);
+        }
+
+        // Create new user with ADMIN role
+        User admin = createUser(request, Role.ADMIN);
+        log.info("Admin created with ID: {} (publicId: {})", admin.getId(), admin.getPublicId());
+
+        // Generate and send OTP
+        sendVerificationOtp(admin);
+
+        return SignupResponse.builder()
+                .userId(admin.getPublicId())
+                .email(admin.getEmail())
+                .message(Constants.SUCCESS_ADMIN_CREATED)
                 .build();
     }
 
@@ -433,5 +443,38 @@ public class AuthServiceImpl implements AuthService {
         }
 
         return username;
+    }
+
+    /**
+     * Helper method to create user with specified role
+     */
+    private User createUser(SignupRequest request, Role role) {
+        // Generate appropriate public ID based on role
+        String publicId = role == Role.ADMIN
+                ? PublicIdGenerator.generate("ADM")
+                : PublicIdGenerator.generateUserId();
+
+        User user = User.builder()
+                .publicId(publicId)
+                .firstName(request.getFirstName())
+                .lastName(request.getLastName())
+                .username(generateUsername(request.getEmail()))
+                .email(request.getEmail())
+                .passwordHash(passwordEncoder.encode(request.getPassword()))
+                .emailVerified(false)
+                .role(role)
+                .failedOtpAttempts(0)
+                .isDeleted(false)
+                .build();
+
+        return userRepository.save(user);
+    }
+
+    /**
+     * Helper method to generate and send verification OTP
+     */
+    private void sendVerificationOtp(User user) {
+        String otp = otpService.generateOtp(user.getId(), user.getEmail(), "EMAIL_VERIFICATION");
+        emailService.sendVerificationOtp(user.getEmail(), user.getFirstName(), otp);
     }
 }

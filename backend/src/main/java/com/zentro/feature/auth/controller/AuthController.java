@@ -1,6 +1,8 @@
 package com.zentro.feature.auth.controller;
 
+import com.zentro.common.util.Constants;
 import com.zentro.common.dto.ApiResponse;
+import com.zentro.common.exception.UnauthorizedException;
 import com.zentro.common.security.JwtTokenProvider;
 import com.zentro.feature.auth.dto.request.*;
 import com.zentro.feature.auth.dto.response.JwtResponse;
@@ -13,6 +15,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +31,9 @@ public class AuthController {
     
     private final AuthService authService;
     private final JwtTokenProvider jwtTokenProvider;
+
+    @Value("${app.admin.secret-key}")
+    private String adminSecretKey;
     
     /**
      * POST /api/v1/auth/signup
@@ -41,6 +47,29 @@ public class AuthController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success("User registered successfully. Please verify your email.", response));
+    }
+
+    /**
+     * POST /api/v1/auth/admin/signup
+     * Register new admin user with secret key verification
+     */
+    @PostMapping("/admin/signup")
+    public ResponseEntity<ApiResponse<SignupResponse>> adminSignup(
+            @RequestHeader(value = "Admin-Secret-Key", required = true) String providedSecret,
+            @Valid @RequestBody SignupRequest request) {
+        log.info("POST /api/v1/auth/admin/signup - Email: {}", request.getEmail());
+
+        // Verify admin secret key
+        if (!providedSecret.equals(adminSecretKey)) {
+            log.warn("Invalid admin secret key attempt for email: {}", request.getEmail());
+            throw new UnauthorizedException(Constants.ERROR_INVALID_ADMIN_SECRET);
+        }
+
+        // Create admin user
+        SignupResponse response = authService.adminSignup(request);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success(Constants.SUCCESS_ADMIN_CREATED, response));
     }
     
     /**

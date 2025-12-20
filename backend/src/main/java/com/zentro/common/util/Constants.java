@@ -99,4 +99,8 @@ public final class Constants {
     public static final String SUCCESS_DEFAULT_ADDRESS_SET = "Default address set successfully";
     public static final String ERROR_ADDRESS_NOT_FOUND = "Address not found";
     public static final String ERROR_ADDRESS_NOT_BELONG_TO_USER = "Address does not belong to this user";
+
+    // Admin Messages
+    public static final String ERROR_INVALID_ADMIN_SECRET = "Invalid admin secret key";
+    public static final String SUCCESS_ADMIN_CREATED = "Admin account created successfully. Please verify your email.";
 }

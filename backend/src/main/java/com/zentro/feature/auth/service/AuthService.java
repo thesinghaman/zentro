@@ -17,7 +17,16 @@ public interface AuthService {
      * @return SignupResponse with user ID and message
      */
     SignupResponse signup(SignupRequest request);
-    
+
+    /**
+     * Register a new admin user and send verification OTP
+     * Creates user with Role.ADMIN
+     *
+     * @param request Signup request containing admin details
+     * @return SignupResponse with admin ID and message
+     */
+    SignupResponse adminSignup(SignupRequest request);
+
     /**
      * Login user with email and password
      * User must be email verified to login
