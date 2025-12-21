@@ -24,7 +24,7 @@
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jwt.version>0.12.3</jwt.version>
-        <aws.sdk.version>2.21.0</aws.sdk.version>
+        <aws.sdk.version>2.26.0</aws.sdk.version>
         <razorpay.version>1.4.3</razorpay.version>
     </properties>
 
@@ -87,6 +87,13 @@
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>s3</artifactId>
+            <version>${aws.sdk.version}</version>
+        </dependency>
+
+        <!-- AWS CRT Client (uses native C-based SSL, immune to Java SSL bugs) -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>aws-crt-client</artifactId>
             <version>${aws.sdk.version}</version>
         </dependency>
 

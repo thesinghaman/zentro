@@ -4,6 +4,7 @@ import com.zentro.common.exception.BadRequestException;
 
 import lombok.extern.slf4j.Slf4j;
 
+import jakarta.annotation.PreDestroy;
 import jakarta.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -12,10 +13,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.core.async.AsyncRequestBody;
+import software.amazon.awssdk.http.crt.AwsCrtAsyncHttpClient;
 
 import java.io.IOException;
 import java.net.URI;
@@ -47,7 +49,8 @@ public class R2StorageService {
     @Value("${app.storage.cloudflare.r2.endpoint}")
     private String endpoint;
 
-    private S3Client s3Client;
+    // Singleton S3AsyncClient - uses native CRT for SSL
+    private S3AsyncClient s3Client;
 
     public static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     public static final List<String> ALLOWED_IMAGE_TYPES = Arrays.asList("image/jpeg", "image/png", "image/jpg", "image/gif");
@@ -55,19 +58,27 @@ public class R2StorageService {
 
     @PostConstruct
     public void initializeS3Client() {
-        try {
-            AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKeyId, secretAccessKey);
 
-            this.s3Client = S3Client.builder()
-                    .endpointOverride(URI.create(endpoint))
-                    .credentialsProvider(StaticCredentialsProvider.create(credentials))
-                    .region(Region.US_EAST_1) // R2 doesn't use regions, but SDK requires it
-                    .build();
+        AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKeyId, secretAccessKey);
 
-            log.info("R2 Storage Service initialized successfully with bucket: {}", bucketName);
-        } catch (Exception e) {
-            log.error("Failed to initialize R2 Storage Service", e);
-            throw new RuntimeException("Failed to initialize R2 Storage Service", e);
+        // Use AwsCrtAsyncHttpClient - native C-based SSL stack (bypasses Java SSL bugs)
+        this.s3Client = S3AsyncClient.builder()
+                .endpointOverride(URI.create(endpoint))
+                .credentialsProvider(StaticCredentialsProvider.create(credentials))
+                .region(Region.US_EAST_1) // R2 doesn't use regions, but SDK requires it
+                .forcePathStyle(true)
+                .httpClientBuilder(AwsCrtAsyncHttpClient.builder()
+                        .maxConcurrency(50))
+                .build();
+
+        log.info("R2 Storage Service initialized successfully with bucket: {}", bucketName);
+    }
+
+    @PreDestroy
+    public void cleanup() {
+        if (this.s3Client != null) {
+            this.s3Client.close();
+            log.info("R2 S3Client closed successfully");
         }
     }
 
@@ -92,20 +103,22 @@ public class R2StorageService {
                     .contentLength(file.getSize())
                     .build();
 
-            s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(
-                    file.getInputStream(),
-                    file.getSize()
-            ));
+            // Use AsyncClient with .join() to make it synchronous
+            // This uses native C-based SSL (CRT) which bypasses Java SSL bugs
+            s3Client.putObject(putObjectRequest, AsyncRequestBody.fromBytes(file.getBytes()))
+                    .join();
 
             String fileUrl = publicUrl + "/" + key;
             log.info("File uploaded successfully to R2: {}", fileUrl);
             return fileUrl;
+
         } catch (IOException e) {
-            log.error("Failed to upload file to R2", e);
+            log.error("Failed to read file bytes", e);
             throw new BadRequestException("Failed to upload file: " + e.getMessage());
-        } catch (S3Exception e) {
-            log.error("R2 S3 error during file upload", e);
-            throw new BadRequestException("File upload failed: " + e.awsErrorDetails().errorMessage());
+        } catch (Exception e) {
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            log.error("R2 CRT error during file upload", cause);
+            throw new BadRequestException("File upload failed: " + cause.getMessage());
         }
     }
 
@@ -129,11 +142,13 @@ public class R2StorageService {
                     .key(key)
                     .build();
 
-            s3Client.deleteObject(deleteObjectRequest);
+            // Use AsyncClient with .join() to make it synchronous
+            s3Client.deleteObject(deleteObjectRequest).join();
             log.info("File deleted successfully from R2: {}", key);
 
         } catch (S3Exception e) {
-            log.error("Failed to delete file from R2: {}", fileUrl, e);
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            log.error("Failed to delete file from R2: {}", fileUrl, cause);
             // Don't throw exception on delete failure - log it and continue
         }
     }

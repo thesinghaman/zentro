@@ -16,6 +16,9 @@ public final class Constants {
     public static final String ROLE_USER = "USER";
     public static final String ROLE_ADMIN = "ADMIN";
 
+    // Prefixes
+    public static final String PREFIX_CATEGORY = "CAT";
+
     // OTP
     public static final String OTP_PURPOSE_EMAIL_VERIFICATION = "EMAIL_VERIFICATION";
     public static final String OTP_PURPOSE_PASSWORD_RESET = "PASSWORD_RESET";
@@ -91,6 +94,7 @@ public final class Constants {
 
     // Folders
     public static final String R2_FOLDER_PROFILE_PICTURES = "profile-pictures";
+    public static final String R2_FOLDER_CATEGORIES = "categories";
 
     // Address Messages
     public static final String SUCCESS_ADDRESS_ADDED = "Address added successfully";
@@ -103,4 +107,19 @@ public final class Constants {
     // Admin Messages
     public static final String ERROR_INVALID_ADMIN_SECRET = "Invalid admin secret key";
     public static final String SUCCESS_ADMIN_CREATED = "Admin account created successfully. Please verify your email.";
+
+    // Category Messages
+    public static final String SUCCESS_ROOT_CATEGORIES_RETRIEVED = "Root categories retrieved successfully";
+    public static final String SUCCESS_CATEGORY_RETRIEVED = "Category retrieved successfully";
+    public static final String SUCCESS_SUBCATEGORIES_RETRIEVED = "Subcategories retrieved successfully";
+    public static final String SUCCESS_FEATURED_CATEGORIES_RETRIEVED = "Featured categories retrieved successfully";
+    public static final String SUCCESS_CATEGORY_CREATED = "Category created successfully";
+    public static final String SUCCESS_CATEGORY_UPDATED = "Category updated successfully";
+    public static final String SUCCESS_CATEGORY_DELETED = "Category deleted successfully";
+    public static final String ERROR_CATEGORY_NOT_FOUND = "Category not found";
+    public static final String ERROR_CATEGORY_NAME_EXISTS = "A category with this name already exists under the same parent";
+    public static final String ERROR_CATEGORY_HAS_CHILDREN = "Cannot delete category that has subcategories";
+    public static final String ERROR_CATEGORY_HAS_PRODUCTS = "Cannot delete category that has products";
+    public static final String ERROR_CATEGORY_SELF_REFERENCE = "Category cannot be its own parent";
+    public static final String ERROR_INVALID_PARENT_CATEGORY = "Parent category not found";
 }
