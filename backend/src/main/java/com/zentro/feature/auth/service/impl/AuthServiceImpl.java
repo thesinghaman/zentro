@@ -451,8 +451,8 @@ public class AuthServiceImpl implements AuthService {
     private User createUser(SignupRequest request, Role role) {
         // Generate appropriate public ID based on role
         String publicId = role == Role.ADMIN
-                ? PublicIdGenerator.generate("ADM")
-                : PublicIdGenerator.generateUserId();
+                ? PublicIdGenerator.generate(Constants.PREFIX_ADMIN_PUBLIC_ID)
+                : PublicIdGenerator.generate(Constants.PREFIX_USER_PUBLIC_ID);
 
         User user = User.builder()
                 .publicId(publicId)

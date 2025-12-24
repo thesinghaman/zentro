@@ -102,7 +102,7 @@ public class CategoryServiceImpl implements CategoryService {
         
         // Create category
         Category category = Category.builder()
-                .publicId(PublicIdGenerator.generate(Constants.PREFIX_CATEGORY))
+                .publicId(PublicIdGenerator.generate(Constants.PREFIX_CATEGORY_PUBLIC_ID))
                 .name(request.getName())
                 .imageUrl(imageUrl)
                 .isFeatured(request.getIsFeatured())

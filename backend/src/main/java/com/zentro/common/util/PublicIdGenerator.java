@@ -14,14 +14,6 @@ public class PublicIdGenerator {
     private static final int RANDOM_LENGTH = 6;
     
     /**
-     * Generate a public ID for a user
-     * Format: USR-{timestamp}-{random}
-     */
-    public static String generateUserId() {
-        return generate("USR");
-    }
-    
-    /**
      * Generate a public ID with custom prefix
      * @param prefix The prefix for the ID (e.g., "USR", "ORD", "PRD")
      * @return Generated public ID
